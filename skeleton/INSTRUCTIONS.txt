@@ -1,0 +1,23 @@
+BEFORE YOU RUN (one time only)
+------------------------------
+1. Open a terminal and navigate into the skeleton folder via "cd [PATH TO skeleton FOLDER HERE]"
+2. Install Flask via "pip install flask" [NOTE: if pip is not found, try "pip3 install flask" or "python -m pip install flask"]
+
+=================================================================================================================================
+
+RUNNING THE PROGRAM
+-------------------
+1. From inside the skeleton folder, start the app via "python app.py" [NOTE: if python is not found, try "python3 app.py"]
+2. You should see a message like "Running on http://127.0.0.1:5000"-- leave the window open, as this is what runs the server.
+
+[NOTE: if you wish to stop the server, head back to the terminal and press Ctrl + C]
+
+==================================================================================================================================
+
+USING IT
+--------
+1. Open a web browser and go to "http://127.0.0.1:5000".
+2. You will see two columns, "To Do" and "In Progress", with one card.
+3. Click the card. The card moves to the other column.
+
+[NOTE: upon running the program, a skeleton.db file will be found within the skeleton directory. These are the database logs upon an event triggering.]
