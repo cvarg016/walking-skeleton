@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Walking Skeleton</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; }
+        .board { display: flex; gap: 2rem; }
+        .column { flex: 1; background: #f4f4f4; padding: 1rem; border-radius: 8px; }
+        .card {
+            background: white; padding: 1rem; margin-bottom: 0.5rem;
+            border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+        .card:hover { background: #eef; }
+    </style>
+</head>
+<body>
+    <h1>Walking Skeleton</h1>
+    <p>Click a card to move it.</p>
+
+    <div class="board">
+        <div class="column">
+            <h3>To Do</h3>
+            {% for card in cards if card['col'] == 'todo' %}
+                <div class="card" onclick="moveCard({{ card['id'] }})">
+                    {{ card['title'] }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="column">
+            <h3>In Progress</h3>
+            {% for card in cards if card['col'] == 'in_progress' %}
+                <div class="card" onclick="moveCard({{ card['id'] }})">
+                    {{ card['title'] }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        function moveCard(cardId) {
+            fetch("/move", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({card_id: cardId, user: "test_user"})
+            })
+            .then(r => r.json())
+            .then(() => location.reload());
+        }
+    </script>
+</body>
+</html>
