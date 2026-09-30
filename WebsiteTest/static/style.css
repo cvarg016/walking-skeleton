@@ -1,0 +1,45 @@
+body {
+  font-family: sans-serif;
+  padding: 2rem;
+}
+
+.board {
+  display: flex;
+  gap: 2rem;
+}
+
+.column {
+  flex: 1;
+  background: #f4f4f4;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.card {
+  background: white;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.card:hover {
+  background: #eef;
+}
+
+.card-title {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-move {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.card-time {
+  font-size: 0.75rem;
+  color: #999;
+}
