@@ -43,3 +43,65 @@ body {
   font-size: 0.75rem;
   color: #999;
 }
+
+/* WIP counter badge next to each column title */
+.wip-counter {
+  font-size: 0.8rem;
+  color: #555;
+  background: #e7e7e7;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Cards idle longer than the staleness threshold */
+.card.stale {
+  background: #fff5d6;
+  border-left: 4px solid #e0a800;
+}
+
+.card.stale .stale-note {
+  font-size: 0.75rem;
+  color: #b07d00;
+  margin-top: 0.25rem;
+}
+
+/* Banner shown when a WIP limit is exceeded */
+.warning-banner {
+  background: #ffe0e0;
+  border: 1px solid #e57373;
+  color: #a30000;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+/* Add-card form */
+.add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.add-form input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.add-form button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #2d6cdf;
+  color: white;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.add-form button:hover {
+  background: #1f54b3;
+}
