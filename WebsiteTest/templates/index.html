@@ -36,6 +36,68 @@
       .column.drag-over {
         background: #ddd;
       }
+
+      /* WIP counter badge next to each column title */
+      .wip-counter {
+        font-size: 0.8rem;
+        color: #555;
+        background: #e7e7e7;
+        padding: 0.1rem 0.5rem;
+        border-radius: 10px;
+        margin-left: 0.5rem;
+        vertical-align: middle;
+      }
+
+      /* Highlight cards that have gone stale */
+      .card.stale {
+        background: #fff5d6;
+        border-left: 4px solid #e0a800;
+      }
+
+      .card.stale .stale-note {
+        font-size: 0.75rem;
+        color: #b07d00;
+        margin-top: 0.25rem;
+      }
+
+      /* Banner for WIP limit violations */
+      .warning-banner {
+        background: #ffe0e0;
+        border: 1px solid #e57373;
+        color: #a30000;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+      }
+
+      /* Add-card form */
+      .add-form {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .add-form input {
+        flex: 1;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+
+      .add-form button {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: #2d6cdf;
+        color: white;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      .add-form button:hover {
+        background: #1f54b3;
+      }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   </head>
@@ -43,23 +105,52 @@
   <body>
     <h1>Walking Skeleton</h1>
 
+    <!-- Banner shown when the last move exceeded a WIP limit -->
+    <div id="warning-banner" class="warning-banner" hidden></div>
+
+    <!-- Minimal add-card form so the board isn't a dead end -->
+    <form id="add-form" class="add-form">
+      <input id="add-title" type="text" placeholder="New card title" autocomplete="off" />
+      <button type="submit">Add to To Do</button>
+    </form>
+
     <div class="board">
-      <div class="column" data-column="todo">
-        <h2>To Do</h2>
+      <div class="column" data-column="todo" data-wip-limit="{{ limits.get('todo') or '' }}">
+        <h2>
+          To Do
+          <!-- Visible WIP counter -->
+          <span class="wip-counter">{{ counts.get('todo', 0) }}{% if limits.get('todo') %}/{{ limits['todo'] }}{% endif %}</span>
+        </h2>
 
         {% for card in cards %} {% if card["col"] == "todo" %}
-        <div class="card" draggable="true" data-card-id="{{ card['id'] }}">
+        <div class="card {% if card['stale'] %}stale{% endif %}"
+             draggable="true"
+             data-card-id="{{ card['id'] }}">
           {{ card["title"] }}
+          <!-- Staleness note on idle cards -->
+          {% if card['stale'] %}
+          <div class="stale-note">Idle &gt; {{ stale_days }} days</div>
+          {% endif %}
         </div>
         {% endif %} {% endfor %}
       </div>
 
-      <div class="column" data-column="in_progress">
-        <h2>In Progress</h2>
+      <div class="column" data-column="in_progress" data-wip-limit="{{ limits.get('in_progress') or '' }}">
+        <h2>
+          In Progress
+          <!-- Visible WIP counter -->
+          <span class="wip-counter">{{ counts.get('in_progress', 0) }}{% if limits.get('in_progress') %}/{{ limits['in_progress'] }}{% endif %}</span>
+        </h2>
 
         {% for card in cards %} {% if card["col"] == "in_progress" %}
-        <div class="card" draggable="true" data-card-id="{{ card['id'] }}">
+        <div class="card {% if card['stale'] %}stale{% endif %}"
+             draggable="true"
+             data-card-id="{{ card['id'] }}">
           {{ card["title"] }}
+          <!-- Staleness note on idle cards -->
+          {% if card['stale'] %}
+          <div class="stale-note">Idle &gt; {{ stale_days }} days</div>
+          {% endif %}
         </div>
         {% endif %} {% endfor %}
       </div>
@@ -67,6 +158,39 @@
 
     <script>
       const socket = io();
+
+      // Refresh every visible WIP counter from a counts payload
+      function updateCounts(counts) {
+        document.querySelectorAll(".column").forEach((col) => {
+          const name = col.dataset.column;
+          const limit = col.dataset.wipLimit;
+          const counter = col.querySelector(".wip-counter");
+          if (!counter) return;
+          const n = counts[name] || 0;
+          counter.textContent = limit ? `${n}/${limit}` : `${n}`;
+        });
+      }
+
+      // Show/hide the WIP violation banner.
+      // Pass a falsy msg to clear it.
+      function showWarning(msg) {
+        const banner = document.getElementById("warning-banner");
+        if (!msg) {
+          banner.hidden = true;
+          banner.textContent = "";
+          return;
+        }
+        banner.textContent = msg;
+        banner.hidden = false;
+      }
+
+      // A card that just moved has fresh activity
+      function clearStale(card) {
+        if (!card) return;
+        card.classList.remove("stale");
+        const note = card.querySelector(".stale-note");
+        if (note) note.remove();
+      }
 
       socket.on("card_moved", (data) => {
         const card = document.querySelector(
@@ -79,6 +203,19 @@
         if (card && targetColumn && card.parentElement !== targetColumn) {
           targetColumn.appendChild(card);
         }
+
+        // The move counts as activity, so clear the stale marker
+        clearStale(card);
+
+        // Keep WIP counters in sync for everyone else
+        if (data.counts) {
+          updateCounts(data.counts);
+        }
+      });
+
+      // A new card was added somewhere, so reload to show it
+      socket.on("card_added", () => {
+        location.reload();
       });
 
       let draggedCard = null;
@@ -110,10 +247,11 @@
           }
 
           const cardId = draggedCard.dataset.cardId;
+          const movedCard = draggedCard;
 
-          column.appendChild(draggedCard);
+          column.appendChild(movedCard);
 
-          fetch("/move", {
+          const response = await fetch("/move", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -123,8 +261,39 @@
             }),
           });
 
+          if (response.ok) {
+            const data = await response.json();
+            if (data.counts) {
+              updateCounts(data.counts);
+            }
+            // Always call showWarning, a null warning clears the banner
+            showWarning(data.warning);
+
+            // No longer stale
+            clearStale(movedCard);
+          }
+
           draggedCard = null;
         });
+      });
+
+      // Submit the add-card form and refresh the board
+      document.getElementById("add-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("add-title");
+        const title = input.value.trim();
+        if (!title) return;
+
+        const res = await fetch("/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        });
+
+        if (res.ok) {
+          input.value = "";
+          location.reload();
+        }
       });
     </script>
   </body>
