@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+  <head>
+    <title>My View -- Trace</title>
+    <style>
+      body { font-family: sans-serif; padding: 2rem; max-width: 900px; margin: auto; }
+      a.back { color: #2d6cdf; text-decoration: none; font-size: 0.9rem; }
+      h1 { margin-top: 0.5rem; }
+      .progress-wrap {
+        background: #eee; border-radius: 8px; height: 22px; overflow: hidden;
+        margin: 0.5rem 0 1.5rem 0;
+      }
+      .progress-bar {
+        background: #2d6cdf; height: 100%; color: white; text-align: center;
+        font-size: 0.85rem; line-height: 22px;
+      }
+      .section { margin-top: 2rem; }
+      .section h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+      .card-row {
+        background: white; border: 1px solid #e0e0e0; border-radius: 6px;
+        padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 0.5rem;
+      }
+      .card-row a { color: #2d6cdf; text-decoration: none; font-weight: 500; }
+      .card-row a:hover { text-decoration: underline; }
+      .badge-col {
+        font-size: 0.75rem; color: #555; background: #eee;
+        padding: 0.1rem 0.5rem; border-radius: 8px;
+      }
+      .badge-blocked {
+        background: #ffdede; color: #a30000; padding: 0.1rem 0.5rem;
+        border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+      }
+      .badge-overdue {
+        background: #ffe0e0; color: #a30000; padding: 0.1rem 0.5rem;
+        border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+      }
+      .empty { color: #888; font-style: italic; }
+    </style>
+  </head>
+
+  <body>
+    <a class="back" href="{{ url_for('index') }}">&larr; Back to board</a>
+    <h1>My View &mdash; {{ user['display_name'] }}</h1>
+
+    <h2 style="font-size:1rem;">Sprint Progress</h2>
+    <div class="progress-wrap">
+      <div class="progress-bar" style="width: {{ progress }}%;">{{ progress }}%</div>
+    </div>
+    <div style="font-size:0.85rem; color:#666;">{{ done }} of {{ total }} cards done.</div>
+
+    <div class="section">
+      <h2>Overdue ({{ overdue|length }})</h2>
+      {% for c in overdue %}
+      <div class="card-row">
+        <a href="{{ url_for('card_detail', card_id=c['id']) }}">{{ c['title'] }}</a>
+        <span>
+          <span class="badge-overdue">Due {{ c['due_date'][:10] }}</span>
+          <span class="badge-col">{{ c['col'] }}</span>
+        </span>
+      </div>
+      {% else %}
+      <div class="empty">Nothing overdue. Nice.</div>
+      {% endfor %}
+    </div>
+
+    <div class="section">
+      <h2>Blocked ({{ blocked|length }})</h2>
+      {% for c in blocked %}
+      <div class="card-row">
+        <a href="{{ url_for('card_detail', card_id=c['id']) }}">{{ c['title'] }}</a>
+        <span>
+          <span class="badge-blocked">Blocked</span>
+          <span class="badge-col">{{ c['col'] }}</span>
+        </span>
+      </div>
+      {% else %}
+      <div class="empty">Nothing blocked.</div>
+      {% endfor %}
+    </div>
+
+    <div class="section">
+      <h2>My Cards ({{ my_cards|length }})</h2>
+      {% for c in my_cards %}
+      <div class="card-row">
+        <a href="{{ url_for('card_detail', card_id=c['id']) }}">{{ c['title'] }}</a>
+        <span class="badge-col">{{ c['col'] }}</span>
+      </div>
+      {% else %}
+      <div class="empty">No cards assigned to you yet.</div>
+      {% endfor %}
+    </div>
+  </body>
+</html>
