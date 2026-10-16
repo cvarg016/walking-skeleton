@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Trace -- Sign In</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+      .login-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        width: 320px;
+      }
+      h1 { margin-top: 0; font-size: 1.4rem; }
+      label { display: block; margin-top: 1rem; font-size: 0.9rem; color: #444; }
+      input {
+        width: 100%;
+        padding: 0.5rem;
+        margin-top: 0.25rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        margin-top: 1.25rem;
+        padding: 0.6rem;
+        border: none;
+        background: #2d6cdf;
+        color: white;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      button:hover { background: #1f54b3; }
+      .error {
+        color: #a30000;
+        background: #ffe0e0;
+        padding: 0.6rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        margin-top: 1rem;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: #777;
+        margin-top: 1.5rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-card">
+      <h1>Trace</h1>
+      <form method="post">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+
+        <button type="submit">Sign In</button>
+      </form>
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+      <div class="hint">Demo accounts: alice / bob / carol &mdash; password: <em>password</em></div>
+    </div>
+  </body>
+</html>

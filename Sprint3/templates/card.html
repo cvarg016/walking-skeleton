@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+  <head>
+    <title>{{ card['title'] }} -- Trace</title>
+    <style>
+      body { font-family: sans-serif; padding: 2rem; max-width: 720px; margin: auto; }
+      a.back { color: #2d6cdf; text-decoration: none; font-size: 0.9rem; }
+      h1 { margin-top: 0.5rem; }
+      .card-info {
+        background: #f4f4f4; padding: 1rem; border-radius: 8px;
+        display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+      }
+      .card-info div { font-size: 0.9rem; }
+      .card-info strong { color: #333; }
+      .badge-blocked {
+        background: #ffdede; color: #a30000; padding: 0.15rem 0.5rem;
+        border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+      }
+      .block-controls { margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .block-controls input {
+        flex: 1; padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px;
+        font-size: 0.95rem; min-width: 200px;
+      }
+      .block-controls button {
+        padding: 0.5rem 1rem; border: none; border-radius: 6px;
+        font-size: 0.95rem; cursor: pointer;
+      }
+      .btn-block { background: #c62828; color: white; }
+      .btn-unblock { background: #2e7d32; color: white; }
+      .btn-block:hover { background: #9c1f1f; }
+      .btn-unblock:hover { background: #1f5d24; }
+      h2 { font-size: 1.1rem; }
+      .comment {
+        background: white; border: 1px solid #e0e0e0; border-radius: 6px;
+        padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+      }
+      .comment-meta { font-size: 0.75rem; color: #888; margin-bottom: 0.25rem; }
+      .comment-body { font-size: 0.95rem; white-space: pre-wrap; }
+      .comment-form textarea {
+        width: 100%; min-height: 80px; padding: 0.5rem;
+        border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem;
+        box-sizing: border-box; font-family: inherit;
+      }
+      .comment-form button {
+        margin-top: 0.5rem; padding: 0.5rem 1rem; border: none;
+        background: #2d6cdf; color: white; border-radius: 6px;
+        font-size: 0.95rem; cursor: pointer;
+      }
+      .comment-form button:hover { background: #1f54b3; }
+    </style>
+  </head>
+
+  <body>
+    <a class="back" href="{{ url_for('index') }}">&larr; Back to board</a>
+    <h1>{{ card['title'] }}</h1>
+
+    <div class="card-info">
+      <div><strong>Column:</strong> {{ card['col'] }}</div>
+      <div><strong>Owner:</strong> {{ owner or '—' }}</div>
+      <div><strong>Due:</strong> {{ card['due_date'][:10] if card['due_date'] else '—' }}</div>
+      <div>
+        <strong>Status:</strong>
+        {% if card['blocked'] %}<span class="badge-blocked">Blocked</span>{% else %}Active{% endif %}
+      </div>
+    </div>
+
+    <!-- Sprint 3 -- block/unblock controls -->
+    <div class="block-controls">
+      {% if card['blocked'] %}
+        <form id="unblock-form" style="display:flex; gap:0.5rem; width:100%;">
+          <button class="btn-unblock" type="submit">Unblock this card</button>
+        </form>
+      {% else %}
+        <form id="block-form" style="display:flex; gap:0.5rem; width:100%; flex-wrap:wrap;">
+          <input id="block-reason" type="text" placeholder="Reason for blocking" />
+          <button class="btn-block" type="submit">Block</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <h2>Comments ({{ comments|length }})</h2>
+
+    {% for c in comments %}
+    <div class="comment">
+      <div class="comment-meta">{{ c['author'] }} &middot; {{ c['timestamp'][:19].replace('T', ' ') }}</div>
+      <div class="comment-body">{{ c['body'] }}</div>
+    </div>
+    {% else %}
+    <p style="color:#888;">No comments yet.</p>
+    {% endfor %}
+
+    <form id="comment-form" class="comment-form">
+      <textarea id="comment-body" placeholder="Write a comment..." required></textarea>
+      <button type="submit">Post Comment</button>
+    </form>
+
+    <script>
+      const CARD_ID = {{ card['id'] }};
+
+      // Sprint 3 -- submit a comment and reload to show it.
+      document.getElementById("comment-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const body = document.getElementById("comment-body").value.trim();
+        if (!body) return;
+        const res = await fetch("/comment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ card_id: CARD_ID, body }),
+        });
+        if (res.ok) location.reload();
+      });
+
+      // Sprint 3 -- block or unblock the card, then return to the board.
+      const blockForm = document.getElementById("block-form");
+      if (blockForm) {
+        blockForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const reason = document.getElementById("block-reason").value.trim();
+          const res = await fetch("/block", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ card_id: CARD_ID, reason }),
+          });
+          if (res.ok) window.location.href = "{{ url_for('index') }}";
+        });
+      }
+
+      const unblockForm = document.getElementById("unblock-form");
+      if (unblockForm) {
+        unblockForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const res = await fetch("/unblock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ card_id: CARD_ID }),
+          });
+          if (res.ok) window.location.href = "{{ url_for('index') }}";
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Trace</title>
+    <style>
+      body { font-family: sans-serif; padding: 2rem; }
+      .topnav {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #ddd;
+      }
+      .topnav .links a {
+        margin-left: 1rem; color: #2d6cdf; text-decoration: none; font-size: 0.95rem;
+      }
+      .topnav .links a:hover { text-decoration: underline; }
+      .board { display: flex; gap: 2rem; }
+      .column {
+        flex: 1; background: #f4f4f4; padding: 1rem;
+        border-radius: 8px; min-height: 300px;
+      }
+      .card {
+        background: white; padding: 1rem; margin-bottom: 1rem;
+        border-radius: 6px; cursor: grab;
+      }
+      .card:active { cursor: grabbing; }
+      .column.drag-over { background: #ddd; }
+      .wip-counter {
+        font-size: 0.8rem; color: #555; background: #e7e7e7;
+        padding: 0.1rem 0.5rem; border-radius: 10px;
+        margin-left: 0.5rem; vertical-align: middle;
+      }
+      .card.stale { background: #fff5d6; border-left: 4px solid #e0a800; }
+      .card.stale .stale-note {
+        font-size: 0.75rem; color: #b07d00; margin-top: 0.25rem;
+      }
+      .warning-banner {
+        background: #ffe0e0; border: 1px solid #e57373; color: #a30000;
+        padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem;
+      }
+      .add-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+      .add-form input, .add-form select {
+        padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;
+      }
+      .add-form input[type="text"] { flex: 1; min-width: 200px; }
+      .add-form button {
+        padding: 0.5rem 1rem; border: none; background: #2d6cdf;
+        color: white; border-radius: 6px; font-size: 1rem; cursor: pointer;
+      }
+      .add-form button:hover { background: #1f54b3; }
+      /* Sprint 3 -- card metadata, blocked badge, comment count */
+      .card-meta {
+        font-size: 0.75rem; color: #666; margin-top: 0.4rem;
+        display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;
+      }
+      .card-title-link { color: inherit; text-decoration: none; }
+      .card-title-link:hover { text-decoration: underline; }
+      .badge-blocked {
+        background: #ffdede; color: #a30000; padding: 0.1rem 0.5rem;
+        border-radius: 8px; font-size: 0.7rem; font-weight: 600;
+      }
+      .badge-due { color: #444; }
+      .badge-due.overdue { color: #a30000; font-weight: 600; }
+    </style>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  </head>
+
+  <body>
+    <div class="topnav">
+      <strong>Trace</strong>
+      <div class="links">
+        <span>Signed in as {{ user['display_name'] }}</span>
+        <a href="{{ url_for('my_view') }}">My View</a>
+        <a href="{{ url_for('export') }}">Export</a>
+        <a href="{{ url_for('logout') }}">Log Out</a>
+      </div>
+    </div>
+
+    <div id="warning-banner" class="warning-banner" hidden></div>
+
+    <form id="add-form" class="add-form">
+      <input id="add-title" type="text" placeholder="New card title" autocomplete="off" />
+      <input id="add-owner" type="text" placeholder="Owner username (optional)" autocomplete="off" />
+      <input id="add-due" type="date" title="Due date (optional)" />
+      <button type="submit">Add to To Do</button>
+    </form>
+
+    <div class="board">
+      <div class="column" data-column="todo" data-wip-limit="{{ limits.get('todo') or '' }}">
+        <h2>
+          To Do
+          <span class="wip-counter">{{ counts.get('todo', 0) }}{% if limits.get('todo') %}/{{ limits['todo'] }}{% endif %}</span>
+        </h2>
+
+        {% for card in cards %} {% if card["col"] == "todo" %}
+        <div class="card {% if card['stale'] %}stale{% endif %}"
+             draggable="true"
+             data-card-id="{{ card['id'] }}">
+          <a class="card-title-link" href="{{ url_for('card_detail', card_id=card['id']) }}">{{ card["title"] }}</a>
+          <div class="card-meta">
+            {% if card['blocked'] %}<span class="badge-blocked">Blocked</span>{% endif %}
+            {% if card['owner'] %}<span>👤 {{ card['owner'] }}</span>{% endif %}
+            {% if card['due_date'] %}<span class="badge-due">📅 {{ card['due_date'][:10] }}</span>{% endif %}
+            {% if card['comments'] %}<span>💬 {{ card['comments'] }}</span>{% endif %}
+          </div>
+          {% if card['blocked'] and card['block_reason'] %}
+          <div class="stale-note">Blocked: {{ card['block_reason'] }}</div>
+          {% endif %}
+          {% if card['stale'] %}
+          <div class="stale-note">Idle &gt; {{ stale_days }} days</div>
+          {% endif %}
+        </div>
+        {% endif %} {% endfor %}
+      </div>
+
+      <div class="column" data-column="in_progress" data-wip-limit="{{ limits.get('in_progress') or '' }}">
+        <h2>
+          In Progress
+          <span class="wip-counter">{{ counts.get('in_progress', 0) }}{% if limits.get('in_progress') %}/{{ limits['in_progress'] }}{% endif %}</span>
+        </h2>
+
+        {% for card in cards %} {% if card["col"] == "in_progress" %}
+        <div class="card {% if card['stale'] %}stale{% endif %}"
+             draggable="true"
+             data-card-id="{{ card['id'] }}">
+          <a class="card-title-link" href="{{ url_for('card_detail', card_id=card['id']) }}">{{ card["title"] }}</a>
+          <div class="card-meta">
+            {% if card['blocked'] %}<span class="badge-blocked">Blocked</span>{% endif %}
+            {% if card['owner'] %}<span>👤 {{ card['owner'] }}</span>{% endif %}
+            {% if card['due_date'] %}<span class="badge-due">📅 {{ card['due_date'][:10] }}</span>{% endif %}
+            {% if card['comments'] %}<span>💬 {{ card['comments'] }}</span>{% endif %}
+          </div>
+          {% if card['blocked'] and card['block_reason'] %}
+          <div class="stale-note">Blocked: {{ card['block_reason'] }}</div>
+          {% endif %}
+          {% if card['stale'] %}
+          <div class="stale-note">Idle &gt; {{ stale_days }} days</div>
+          {% endif %}
+        </div>
+        {% endif %} {% endfor %}
+      </div>
+    </div>
+
+    <script>
+      const socket = io();
+
+      function updateCounts(counts) {
+        document.querySelectorAll(".column").forEach((col) => {
+          const name = col.dataset.column;
+          const limit = col.dataset.wipLimit;
+          const counter = col.querySelector(".wip-counter");
+          if (!counter) return;
+          const n = counts[name] || 0;
+          counter.textContent = limit ? `${n}/${limit}` : `${n}`;
+        });
+      }
+
+      function showWarning(msg) {
+        const banner = document.getElementById("warning-banner");
+        if (!msg) { banner.hidden = true; banner.textContent = ""; return; }
+        banner.textContent = msg;
+        banner.hidden = false;
+      }
+
+      function clearStale(card) {
+        if (!card) return;
+        card.classList.remove("stale");
+        const notes = card.querySelectorAll(".stale-note");
+        notes.forEach((n) => {
+          // Only remove the "Idle" note, not a blocked reason.
+          if (n.textContent.startsWith("Idle")) n.remove();
+        });
+      }
+
+      socket.on("card_moved", (data) => {
+        const card = document.querySelector(`.card[data-card-id="${data.card_id}"]`);
+        const targetColumn = document.querySelector(`.column[data-column="${data.new_col}"]`);
+        if (card && targetColumn && card.parentElement !== targetColumn) {
+          targetColumn.appendChild(card);
+        }
+        clearStale(card);
+        if (data.counts) updateCounts(data.counts);
+      });
+
+      socket.on("card_added", () => { location.reload(); });
+      socket.on("comment_added", () => { /* refresh handled on card page */ });
+
+      let draggedCard = null;
+
+      document.querySelectorAll(".card").forEach((card) => {
+        card.addEventListener("dragstart", () => { draggedCard = card; });
+      });
+
+      document.querySelectorAll(".column").forEach((column) => {
+        column.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          column.classList.add("drag-over");
+        });
+        column.addEventListener("dragleave", () => {
+          column.classList.remove("drag-over");
+        });
+        column.addEventListener("drop", async (event) => {
+          event.preventDefault();
+          column.classList.remove("drag-over");
+          if (!draggedCard) return;
+
+          const cardId = draggedCard.dataset.cardId;
+          const movedCard = draggedCard;
+          column.appendChild(movedCard);
+
+          const response = await fetch("/move", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ card_id: cardId }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.counts) updateCounts(data.counts);
+            showWarning(data.warning);
+            clearStale(movedCard);
+          }
+          draggedCard = null;
+        });
+      });
+
+      // Sprint 3 -- add-card now also accepts owner + due date.
+      document.getElementById("add-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const title = document.getElementById("add-title").value.trim();
+        const owner = document.getElementById("add-owner").value.trim();
+        const due = document.getElementById("add-due").value;
+
+        if (!title) return;
+
+        const res = await fetch("/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            owner_username: owner || null,   // resolved server-side below
+            due_date: due || null,
+          }),
+        });
+
+        if (res.ok) {
+          document.getElementById("add-title").value = "";
+          document.getElementById("add-owner").value = "";
+          document.getElementById("add-due").value = "";
+          location.reload();
+        }
+      });
+    </script>
+  </body>
+</html>
