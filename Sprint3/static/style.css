@@ -1,0 +1,171 @@
+body {
+  font-family: sans-serif;
+  padding: 2rem;
+}
+
+.topnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.topnav .links a {
+  margin-left: 1rem;
+  color: #2d6cdf;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.topnav .links a:hover {
+  text-decoration: underline;
+}
+
+.board {
+  display: flex;
+  gap: 2rem;
+}
+
+.column {
+  flex: 1;
+  background: #f4f4f4;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.card {
+  background: white;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.card:hover {
+  background: #eef;
+}
+
+.card-title {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-move {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.card-time {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+/* Sprint 2 -- WIP counter badge next to each column title */
+.wip-counter {
+  font-size: 0.8rem;
+  color: #555;
+  background: #e7e7e7;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Sprint 2 -- cards idle longer than the staleness threshold */
+.card.stale {
+  background: #fff5d6;
+  border-left: 4px solid #e0a800;
+}
+
+.card.stale .stale-note {
+  font-size: 0.75rem;
+  color: #b07d00;
+  margin-top: 0.25rem;
+}
+
+/* Sprint 2 -- banner shown when a WIP limit is exceeded */
+.warning-banner {
+  background: #ffe0e0;
+  border: 1px solid #e57373;
+  color: #a30000;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+/* Sprint 2b -- add-card form */
+.add-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.add-form input,
+.add-form select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.add-form input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+}
+
+.add-form button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #2d6cdf;
+  color: white;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.add-form button:hover {
+  background: #1f54b3;
+}
+
+/* Sprint 3 -- card metadata, blocked badge, comment count */
+.card-meta {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.4rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.card-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-title-link:hover {
+  text-decoration: underline;
+}
+
+.badge-blocked {
+  background: #ffdede;
+  color: #a30000;
+  padding: 0.1rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.badge-due {
+  color: #444;
+}
+
+.badge-due.overdue {
+  color: #a30000;
+  font-weight: 600;
+}
