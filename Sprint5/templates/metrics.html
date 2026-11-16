@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Metrics -- Trace</title>
+    <style>
+      body { font-family: sans-serif; padding: 2rem; max-width: 1000px; margin: auto; }
+      a.back { color: #2d6cdf; text-decoration: none; font-size: 0.9rem; }
+      h1 { margin-top: 0.5rem; }
+      h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+      .gate {
+        border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 0.75rem;
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 1rem; flex-wrap: wrap;
+      }
+      .gate.pass { background: #e7f6e9; border-left: 5px solid #2e7d32; }
+      .gate.fail { background: #ffe9e9; border-left: 5px solid #c62828; }
+      .gate.none { background: #f1f1f1; border-left: 5px solid #999; }
+      .gate .name { font-weight: 600; }
+      .gate .detail { font-size: 0.82rem; color: #555; margin-top: 0.2rem; }
+      .gate .score { font-size: 1.6rem; font-weight: 700; }
+      .gate.pass .score { color: #2e7d32; }
+      .gate.fail .score { color: #c62828; }
+      .gate.none .score { color: #777; }
+      .status {
+        font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+        padding: 0.15rem 0.6rem; border-radius: 8px; text-transform: uppercase;
+      }
+      .status.pass { background: #2e7d32; color: white; }
+      .status.fail { background: #c62828; color: white; }
+      .status.none { background: #999; color: white; }
+      .verdict {
+        margin: 1.5rem 0; padding: 1rem 1.25rem; border-radius: 10px;
+        font-weight: 600;
+      }
+      .verdict.ok { background: #e7f6e9; color: #1b5e20; }
+      .verdict.no { background: #fff4e5; color: #8a4b00; }
+      .section { margin-top: 2rem; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+      th {
+        text-align: left; font-size: 0.75rem; text-transform: uppercase;
+        letter-spacing: 0.04em; color: #777; padding: 0.5rem 0.6rem;
+        border-bottom: 2px solid #e0e0e0;
+      }
+      td { padding: 0.55rem 0.6rem; border-bottom: 1px solid #eee; }
+      form.inline { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+      form.inline input, form.inline select {
+        padding: 0.45rem; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem;
+      }
+      form.inline input[type="text"] { flex: 1; min-width: 220px; }
+      button {
+        padding: 0.45rem 0.9rem; border: none; background: #2d6cdf; color: white;
+        border-radius: 6px; font-size: 0.95rem; cursor: pointer;
+      }
+      button:hover { background: #1f54b3; }
+      button.small { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+      button.resolve { background: #2e7d32; }
+      button.resolve:hover { background: #1f5d24; }
+      .empty { color: #888; font-style: italic; padding: 0.5rem 0; }
+      .hint { font-size: 0.8rem; color: #777; margin-bottom: 1rem; }
+      .issue-open td { background: #fffafa; }
+      .sev-critical { color: #c62828; font-weight: 600; }
+      .sev-minor { color: #777; }
+    </style>
+  </head>
+
+  <body>
+    <a class="back" href="{{ url_for('index') }}">&larr; Back to board</a>
+    <h1>Metrics</h1>
+    <div class="hint">
+      Thresholds were set in week 2 and have not moved. A measure with no
+      data yet does not count as a pass.
+    </div>
+
+    <!-- Measure 1 -->
+    <div class="gate {{ 'pass' if summary.m1.pass else ('none' if not summary.m1.has_data else 'fail') }}">
+      <div>
+        <div class="name">Measure 1 &mdash; DAU: 3+ days per week</div>
+        <div class="detail">
+          Threshold {{ summary.m1.threshold }}% &middot;
+          {{ summary.m1.three_plus_days }} of {{ summary.m1.active_users }} active users
+          {% if summary.m1.window_start %}
+          &middot; week {{ summary.m1.window_start }} to {{ summary.m1.window_end }}
+          {% endif %}
+          {% if not summary.m1.has_data %}&middot; no login data yet{% endif %}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="score">{{ summary.m1.pct }}%</div>
+        <span class="status {{ 'pass' if summary.m1.pass else ('none' if not summary.m1.has_data else 'fail') }}">
+          {{ 'PASS' if summary.m1.pass else ('NO DATA' if not summary.m1.has_data else 'FAIL') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Measure 2 -->
+    <div class="gate {{ 'pass' if summary.m2.pass else ('none' if not summary.m2.has_data else 'fail') }}">
+      <div>
+        <div class="name">Measure 2 &mdash; WIP violations self-corrected within 5 minutes</div>
+        <div class="detail">
+          Threshold {{ summary.m2.threshold }}% &middot;
+          {{ summary.m2.corrected_within_5min }} of {{ summary.m2.violations }} violations
+          corrected inside {{ summary.m2.window_seconds // 60 }} minutes
+          &middot; {{ summary.m2.corrected_eventually }} corrected eventually
+          {% if not summary.m2.has_data %}&middot; no violations logged yet{% endif %}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="score">{{ summary.m2.pct }}%</div>
+        <span class="status {{ 'pass' if summary.m2.pass else ('none' if not summary.m2.has_data else 'fail') }}">
+          {{ 'PASS' if summary.m2.pass else ('NO DATA' if not summary.m2.has_data else 'FAIL') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Measure 3 -->
+    <div class="gate {{ 'pass' if summary.m3.pass else ('none' if not summary.m3.has_data else 'fail') }}">
+      <div>
+        <div class="name">Measure 3 &mdash; stuck-card lag reduced vs. Sprint 1 baseline</div>
+        <div class="detail">
+          Threshold {{ summary.m3.threshold }}% reduction &middot;
+          baseline
+          {% if summary.m3.baseline_hours %}
+            {{ summary.m3.baseline_hours }}h
+          {% else %}
+            not recorded
+          {% endif %}
+          &middot; current {{ summary.m3.current_hours }}h
+          {% if summary.m3.samples %}({{ summary.m3.samples }} samples){% endif %}
+          {% if not summary.m3.has_data %}&middot; needs a baseline and at least one lag sample{% endif %}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="score">
+          {% if summary.m3.pct is not none %}{{ summary.m3.pct }}%{% else %}&mdash;{% endif %}
+        </div>
+        <span class="status {{ 'pass' if summary.m3.pass else ('none' if not summary.m3.has_data else 'fail') }}">
+          {{ 'PASS' if summary.m3.pass else ('NO DATA' if not summary.m3.has_data else 'FAIL') }}
+        </span>
+      </div>
+    </div>
+
+    <div class="verdict {{ 'ok' if summary.ready_for_sponsor else 'no' }}">
+      {% if summary.ready_for_sponsor %}
+        All three measures meet their thresholds and there are no open critical issues. Ready for sponsor review.
+      {% else %}
+        Not ready for sponsor review.
+        {{ summary.open_critical_issues }} open critical issue(s).
+        {% if not summary.all_measures_pass %}At least one measure is below threshold or has no data.{% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Baseline capture -->
+    <div class="section">
+      <h2>Record the Sprint 1 baseline</h2>
+      <div class="hint">
+        Measure 3 compares current lag against this number. Record it once,
+        from the Sprint 1 export, and leave it alone afterwards.
+      </div>
+      <form class="inline" method="post" action="{{ url_for('baseline') }}">
+        <input type="text" name="value"
+               placeholder="Sprint 1 average lag in hours (e.g. 42.5)"
+               value="{{ summary.m3.baseline_hours if summary.m3.baseline_hours else '' }}" />
+        <button type="submit">Save baseline</button>
+      </form>
+    </div>
+
+    <!-- Weekly DAU -->
+    <div class="section">
+      <h2>Adoption, week by week</h2>
+      <table>
+        <tr>
+          <th>Week</th><th>Active users</th><th>3+ days</th><th>%</th>
+        </tr>
+        {% for w in weekly %}
+        <tr>
+          <td>{{ w.window_start }} &rarr; {{ w.window_end }}</td>
+          <td>{{ w.active_users }}</td>
+          <td>{{ w.three_plus_days }}</td>
+          <td>{{ w.pct }}%</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <!-- Critical issues -->
+    <div class="section">
+      <h2>Critical issues ({{ summary.open_critical_issues }} open)</h2>
+      <form class="inline" method="post" action="{{ url_for('issue') }}">
+        <input type="text" name="title" placeholder="What broke?" required />
+        <select name="severity">
+          <option value="critical">critical</option>
+          <option value="minor">minor</option>
+        </select>
+        <button type="submit">Log issue</button>
+      </form>
+
+      {% if issues %}
+      <table>
+        <tr><th>Issue</th><th>Severity</th><th>Status</th><th></th></tr>
+        {% for i in issues %}
+        <tr class="{{ 'issue-open' if not i['resolved'] else '' }}">
+          <td>{{ i['title'] }}</td>
+          <td class="sev-{{ i['severity'] }}">{{ i['severity'] }}</td>
+          <td>{{ 'Resolved' if i['resolved'] else 'Open' }}</td>
+          <td>
+            {% if not i['resolved'] %}
+            <form method="post" action="{{ url_for('resolve_issue', issue_id=i['id']) }}">
+              <button class="small resolve" type="submit">Resolve</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <div class="empty">Nothing logged. That is either good news or a missing habit.</div>
+      {% endif %}
+    </div>
+  </body>
+</html>

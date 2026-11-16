@@ -1,0 +1,16 @@
+    <!-- Sprint 5 -- the measure gates, visible where the coordinator looks -->
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.75rem 0 1.5rem 0;">
+      <span class="status {{ 'pass' if summary.m1.pass else ('none' if not summary.m1.has_data else 'fail') }}">
+        Measure 1 {{ summary.m1.pct }}%
+      </span>
+      <span class="status {{ 'pass' if summary.m2.pass else ('none' if not summary.m2.has_data else 'fail') }}">
+        Measure 2 {{ summary.m2.pct }}%
+      </span>
+      <span class="status {{ 'pass' if summary.m3.pass else ('none' if not summary.m3.has_data else 'fail') }}">
+        Measure 3
+        {% if summary.m3.pct is not none %}{{ summary.m3.pct }}%{% else %}&mdash;{% endif %}
+      </span>
+      <a href="{{ url_for('metrics') }}" style="font-size:0.85rem; color:#2d6cdf; align-self:center;">
+        Full metrics &rarr;
+      </a>
+    </div>
