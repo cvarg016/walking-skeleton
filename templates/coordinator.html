@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Coordinator — Trace</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+
+  <body>
+    <header class="masthead">
+      <div class="brand">
+        <h1 class="wordmark">Trace</h1>
+        <span class="subtitle">Capstone Board</span>
+      </div>
+      <nav class="links">
+        <span class="who">{{ user['display_name'] }}</span>
+        <a href="{{ url_for('index') }}">Board</a>
+        <a href="{{ url_for('my_view') }}">My View</a>
+        <a href="{{ url_for('metrics') }}">Metrics</a>
+        <a href="{{ url_for('logout') }}">Log Out</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <a class="back-link" href="{{ url_for('index') }}">&larr; Back to board</a>
+      <h2 class="page-title">Coordinator View</h2>
+      <p class="page-sub">
+        Stalled cards are idle more than {{ stale_days }} days &middot;
+        overcommitted means more than {{ stats['member_limit'] }} active cards.
+      </p>
+
+      <!-- Measure gates at a glance -->
+      <div class="gate-strip">
+        <span class="status {{ 'pass' if summary.m1.pass else ('none' if not summary.m1.has_data else 'fail') }}">
+          Measure 1 {{ summary.m1.pct }}%
+        </span>
+        <span class="status {{ 'pass' if summary.m2.pass else ('none' if not summary.m2.has_data else 'fail') }}">
+          Measure 2 {{ summary.m2.pct }}%
+        </span>
+        <span class="status {{ 'pass' if summary.m3.pass else ('none' if not summary.m3.has_data else 'fail') }}">
+          Measure 3 {% if summary.m3.pct is not none %}{{ summary.m3.pct }}%{% else %}&mdash;{% endif %}
+        </span>
+        <a href="{{ url_for('metrics') }}">Full metrics &rarr;</a>
+      </div>
+
+      <!-- Team stats -->
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="value">{{ stats['total_cards'] }}</div>
+          <div class="label">Total cards</div>
+        </div>
+        <div class="stat {{ 'ok' if stats['done_pct'] >= 50 else '' }}">
+          <div class="value">{{ stats['done_pct'] }}%</div>
+          <div class="label">Done ({{ stats['done'] }})</div>
+        </div>
+        <div class="stat">
+          <div class="value">
+            {{ stats['in_progress'] }}<small>/{{ stats['wip_limit'] }}</small>
+          </div>
+          <div class="label">In Progress</div>
+        </div>
+        <div class="stat {{ 'warn' if stats['stalled'] > 0 else '' }}">
+          <div class="value">{{ stats['stalled'] }}</div>
+          <div class="label">Stalled</div>
+        </div>
+        <div class="stat {{ 'warn' if stats['blocked'] > 0 else '' }}">
+          <div class="value">{{ stats['blocked'] }}</div>
+          <div class="label">Blocked</div>
+        </div>
+        <div class="stat {{ 'warn' if stats['overdue'] > 0 else '' }}">
+          <div class="value">{{ stats['overdue'] }}</div>
+          <div class="label">Overdue</div>
+        </div>
+        <div class="stat {{ 'warn' if stats['unassigned'] > 0 else '' }}">
+          <div class="value">{{ stats['unassigned'] }}</div>
+          <div class="label">Unassigned</div>
+        </div>
+        <div class="stat">
+          <div class="value">{{ stats['self_correction_rate'] }}%</div>
+          <div class="label">Self-corrected</div>
+        </div>
+        <div class="stat">
+          <div class="value">{{ stats['avg_lag_hours'] }}<small>h</small></div>
+          <div class="label">Avg lag</div>
+        </div>
+      </div>
+
+      <!-- Stalled cards -->
+      <div class="panel">
+        <div class="panel-head">
+          Stalled cards
+          <span class="count">{{ stalled|length }}</span>
+        </div>
+        {% if stalled %}
+        <div class="panel-body flush">
+          <table>
+            <thead>
+              <tr>
+                <th>Card</th>
+                <th>Column</th>
+                <th>Assigned to</th>
+                <th>Idle</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in stalled %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('card_detail', card_id=c['id']) }}">{{ c['title'] }}</a>
+                </td>
+                <td><span class="badge-col">{{ c['col'] }}</span></td>
+                <td>{{ c['owner'] }}</td>
+                <td>{{ c['idle_days'] }} days</td>
+                <td>
+                  {% if c['blocked'] %}
+                  <span class="badge-blocked">Blocked</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="panel-body">
+          <div class="empty">No cards idle more than {{ stale_days }} days.</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Overcommitted members -->
+      <div class="panel">
+        <div class="panel-head">
+          Overcommitted members
+          <span class="count">{{ overcommitted|length }}</span>
+        </div>
+        {% if overcommitted %}
+        <div class="panel-body flush">
+          <table>
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Active cards</th>
+                <th>Limit</th>
+                <th>Over by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in overcommitted %}
+              <tr>
+                <td>{{ m['owner'] }}</td>
+                <td>{{ m['active'] }}</td>
+                <td>{{ stats['member_limit'] }}</td>
+                <td><span class="badge-blocked">+{{ m['over_by'] }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="panel-body">
+          <div class="empty">
+            Nobody is over {{ stats['member_limit'] }} active cards.
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </main>
+  </body>
+</html>
