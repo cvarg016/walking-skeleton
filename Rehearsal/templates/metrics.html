@@ -1,0 +1,219 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Metrics — Trace</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+
+  <body>
+    <header class="masthead">
+      <div class="brand">
+        <h1 class="wordmark">Trace</h1>
+        <span class="subtitle">Capstone Board</span>
+      </div>
+      <nav class="links">
+        <span class="who">{{ user['display_name'] }}</span>
+        <a href="{{ url_for('index') }}">Board</a>
+        <a href="{{ url_for('coordinator') }}">Coordinator</a>
+        <a href="{{ url_for('logout') }}">Log Out</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <a class="back-link" href="{{ url_for('index') }}">&larr; Back to board</a>
+      <h2 class="page-title">Metrics</h2>
+      <p class="page-sub">
+        Thresholds were set in week 2 and have not moved. A measure with no
+        data yet does not count as a pass.
+      </p>
+
+      <!-- Measure 1 -->
+      <div class="gate {{ 'pass' if summary.m1.pass else ('none' if not summary.m1.has_data else 'fail') }}">
+        <div>
+          <div class="name">Measure 1 &mdash; DAU: 3+ days per week</div>
+          <div class="detail">
+            Threshold {{ summary.m1.threshold }}% &middot;
+            {{ summary.m1.three_plus_days }} of {{ summary.m1.active_users }}
+            active users
+            {% if summary.m1.window_start %}
+            &middot; week {{ summary.m1.window_start }} to {{ summary.m1.window_end }}
+            {% endif %}
+            {% if not summary.m1.has_data %}&middot; no login data yet{% endif %}
+          </div>
+        </div>
+        <div style="text-align: right">
+          <div class="score">{{ summary.m1.pct }}%</div>
+          <span class="status {{ 'pass' if summary.m1.pass else ('none' if not summary.m1.has_data else 'fail') }}">
+            {{ 'PASS' if summary.m1.pass else ('NO DATA' if not summary.m1.has_data else 'FAIL') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Measure 2 -->
+      <div class="gate {{ 'pass' if summary.m2.pass else ('none' if not summary.m2.has_data else 'fail') }}">
+        <div>
+          <div class="name">
+            Measure 2 &mdash; WIP violations self-corrected within 5 minutes
+          </div>
+          <div class="detail">
+            Threshold {{ summary.m2.threshold }}% &middot;
+            {{ summary.m2.corrected_within_5min }} of {{ summary.m2.violations }}
+            violations corrected inside {{ summary.m2.window_seconds // 60 }} minutes
+            &middot; {{ summary.m2.corrected_eventually }} corrected eventually
+            {% if not summary.m2.has_data %}&middot; no violations logged yet{% endif %}
+          </div>
+        </div>
+        <div style="text-align: right">
+          <div class="score">{{ summary.m2.pct }}%</div>
+          <span class="status {{ 'pass' if summary.m2.pass else ('none' if not summary.m2.has_data else 'fail') }}">
+            {{ 'PASS' if summary.m2.pass else ('NO DATA' if not summary.m2.has_data else 'FAIL') }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Measure 3 -->
+      <div class="gate {{ 'pass' if summary.m3.pass else ('none' if not summary.m3.has_data else 'fail') }}">
+        <div>
+          <div class="name">
+            Measure 3 &mdash; stuck-card lag reduced vs. Sprint 1 baseline
+          </div>
+          <div class="detail">
+            Threshold {{ summary.m3.threshold }}% reduction &middot;
+            baseline
+            {% if summary.m3.baseline_hours %}
+              {{ summary.m3.baseline_hours }}h
+            {% else %}
+              not recorded
+            {% endif %}
+            &middot; current {{ summary.m3.current_hours }}h
+            {% if summary.m3.samples %}({{ summary.m3.samples }} samples){% endif %}
+            {% if not summary.m3.has_data %}
+              &middot; needs a baseline and at least one lag sample
+            {% endif %}
+          </div>
+        </div>
+        <div style="text-align: right">
+          <div class="score">
+            {% if summary.m3.pct is not none %}{{ summary.m3.pct }}%{% else %}&mdash;{% endif %}
+          </div>
+          <span class="status {{ 'pass' if summary.m3.pass else ('none' if not summary.m3.has_data else 'fail') }}">
+            {{ 'PASS' if summary.m3.pass else ('NO DATA' if not summary.m3.has_data else 'FAIL') }}
+          </span>
+        </div>
+      </div>
+
+      <div class="verdict {{ 'ok' if summary.ready_for_sponsor else 'no' }}">
+        {% if summary.ready_for_sponsor %}
+          All three measures meet their thresholds and there are no open critical
+          issues. Ready for sponsor review.
+        {% else %}
+          Not ready for sponsor review.
+          {{ summary.open_critical_issues }} open critical issue(s).
+          {% if not summary.all_measures_pass %}
+          At least one measure is below threshold or has no data.
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Baseline -->
+      <div class="panel">
+        <div class="panel-head">Record the Sprint 1 baseline</div>
+        <div class="panel-body">
+          <div class="hint">
+            Measure 3 compares current lag against this number. Record it once,
+            from the Sprint 1 export, and leave it alone afterwards.
+          </div>
+          <form class="inline" method="post" action="{{ url_for('baseline') }}" style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+            <input
+              type="text"
+              name="value"
+              placeholder="Sprint 1 average lag in hours (e.g. 42.5)"
+              value="{{ summary.m3.baseline_hours if summary.m3.baseline_hours else '' }}"
+              style="flex: 1; min-width: 240px"
+            />
+            <button class="gold" type="submit">Save baseline</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Weekly DAU -->
+      <div class="panel">
+        <div class="panel-head">Adoption, week by week</div>
+        <div class="panel-body flush">
+          <table>
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Active users</th>
+                <th>3+ days</th>
+                <th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for w in weekly %}
+              <tr>
+                <td>{{ w.window_start }} &rarr; {{ w.window_end }}</td>
+                <td>{{ w.active_users }}</td>
+                <td>{{ w.three_plus_days }}</td>
+                <td>{{ w.pct }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Issues -->
+      <div class="panel">
+        <div class="panel-head">
+          Critical issues
+          <span class="count">{{ summary.open_critical_issues }} open</span>
+        </div>
+        <div class="panel-body">
+          <form method="post" action="{{ url_for('issue') }}" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem">
+            <input type="text" name="title" placeholder="What broke?" required style="flex: 1; min-width: 220px" />
+            <select name="severity">
+              <option value="critical">critical</option>
+              <option value="minor">minor</option>
+            </select>
+            <button type="submit">Log issue</button>
+          </form>
+
+          {% if issues %}
+          <table>
+            <thead>
+              <tr>
+                <th>Issue</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in issues %}
+              <tr class="{{ 'issue-open' if not i['resolved'] else '' }}">
+                <td>{{ i['title'] }}</td>
+                <td class="sev-{{ i['severity'] }}">{{ i['severity'] }}</td>
+                <td>{{ 'Resolved' if i['resolved'] else 'Open' }}</td>
+                <td>
+                  {% if not i['resolved'] %}
+                  <form method="post" action="{{ url_for('resolve_issue', issue_id=i['id']) }}">
+                    <button class="small resolve" type="submit">Resolve</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty">
+            Nothing logged. That is either good news or a missing habit.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
